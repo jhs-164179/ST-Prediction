@@ -5,7 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from timm.models.layers import trunc_normal_, DropPath
 
-from module import Inv2d, Inv3d
+# from module import Inv2d, Inv3d
+from module import involution
 
 # Patch Embedding
 class PatchEmbed(nn.Module):
@@ -87,9 +88,10 @@ class ConvMod(nn.Module):
             self.a = nn.Sequential(
                 nn.Conv2d(dim, dim, 1),
                 nn.GELU(),
-                Inv2d(
-                    in_channels=dim, out_channels=dim, kernel_size=kernel_size, padding=padding, groups=dim
-                )
+                # Inv2d(
+                #     in_channels=dim, out_channels=dim, kernel_size=kernel_size, padding=padding, groups=dim
+                # )
+                involution(dim, kernel_size=kernel_size, stride=1)
             )
             # self.v = Inv2d(in_channels=dim, out_channels=dim, kernel_size=1)
             # self.proj = nn.Conv2d(dim, dim, 1)
@@ -169,7 +171,7 @@ class EncoderLayer_S(nn.Module):
 
 # LSB-based
 class FeedForward(nn.Module): 
-    def __init__(self, dim, dilation=2, ratio=2, drop_path=.1, init_value=1e-2, inv=True):
+    def __init__(self, dim, dilation=2, ratio=2, drop_path=.1, init_value=1e-2, inv=False):
         super().__init__()
         # self.ff1 = nn.Sequential(
         #     nn.Conv3d(dim, ratio * dim, 3, 1, 1, bias=False),
