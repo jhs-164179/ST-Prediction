@@ -1,0 +1,13 @@
+{
+    "hidden_dim": 64,
+    "N": 4,
+    "NE": 2,
+    "ND": 2,
+    "patch_size": 2,
+    "kernel_size": 7,
+    "ratio": 2,
+    "drop_path": 0.1,
+    "init_value": 1e-2,
+    "seq_len": 4,
+    "mode": "normal"
+}
