@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--loss', type=str, default='l1l2')
     parser.add_argument('--warmup_epoch', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--data_path', type=str, default='./data')
@@ -88,7 +89,10 @@ if __name__ == '__main__':
                 X, y = X.to(device), y.to(device)
                 optimizer.zero_grad()
                 preds = model(X)
-                loss = 10*criterion1(preds, y) + criterion2(preds, y)
+                if args.loss == 'l1l2':
+                    loss = 10*criterion1(preds, y) + criterion2(preds, y)
+                else:
+                    loss = criterion1(preds, y)
                 loss.backward()
                 optimizer.step()
                 loss_train += loss.item()

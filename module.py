@@ -3,7 +3,6 @@ from mmcv.cnn import ConvModule
 
 
 # Ref: https://github.com/d-li14/involution
-
 class involution(nn.Module):
     '''
     Li, Duo and Hu, Jie and Wang, Changhu and Li, Xiangtai and She, Qi and Zhu, Lei and Zhang, Tong and Chen, Qifeng
