@@ -29,6 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('--loss', type=str, default='l1l2')
     parser.add_argument('--warmup_epoch', type=int, default=5)
     parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--test_batch_size', type=int, default=1)
     parser.add_argument('--data_path', type=str, default='./data')
     parser.add_argument('--save_path', type=str, default='base_result')
 
@@ -57,8 +58,8 @@ if __name__ == '__main__':
 
     # load dataset and dataloader
     if args.data == 'mmnist':
-        train_set = MovingMNIST(root=args.data_path, is_train=True, n_frames_input=10, n_frames_output=10, num_objects=[2])
-        train_set = MovingMNIST(root=args.data_path, is_train=False, n_frames_input=10, n_frames_output=10, num_objects=[2])
+        train_set = MovingMNIST(root=os.path.join(args.data_path, 'moving_mnist'), is_train=True, n_frames_input=10, n_frames_output=10, num_objects=[2])
+        test_set = MovingMNIST(root=os.path.join(args.data_path, 'moving_mnist'), is_train=False, n_frames_input=10, n_frames_output=10, num_objects=[2])
     elif args.data == 'taxibj':
         dataset = np.load(os.path.join(args.data_path, 'taxibj/dataset.npz'))
         X_train, Y_train, X_test, Y_test = dataset['X_train'], dataset['Y_train'], dataset['X_test'], dataset['Y_test']
@@ -69,7 +70,7 @@ if __name__ == '__main__':
         sys.exit()
 
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, pin_memory=True)
-    test_loader = DataLoader(test_set, batch_size=1, shuffle=False, pin_memory=True)
+    test_loader = DataLoader(test_set, batch_size=args.test_batch_size, shuffle=False, pin_memory=True)
 
     best_loss = np.inf
     best_epoch = 0
