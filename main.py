@@ -39,7 +39,6 @@ if __name__ == '__main__':
     model = InvVP_Model(
         **config
     )
-
     # analysis model params and flops
     flops = FlopCountAnalysis(model, torch.randn(1, *args.in_shape))
     gflops = flops.total() / 1e9
@@ -76,6 +75,7 @@ if __name__ == '__main__':
     save_path = f'./logs/{args.save_path}'
     check_path(save_path)
     with open(os.path.join(save_path, f'{args.data}_{args.epochs}epochs.txt'), 'w') as log_file:
+        print_f(model, file=log_file)
         print_f(flop_table, file=log_file)
         print_f(f'model params: {count_parameters(model)}', file=log_file)
         print_f(f'model gflops: {gflops}', file=log_file)

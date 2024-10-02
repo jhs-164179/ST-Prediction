@@ -16,6 +16,7 @@ class PatchEmbed(nn.Module):
             self.proj = nn.ConvTranspose2d(input_dim, embed_dim, kernel_size=patch_size, stride=patch_size)
         else:
             self.proj = nn.Conv2d(input_dim, embed_dim, kernel_size=patch_size, stride=patch_size)
+            
         self.norm = nn.BatchNorm2d(embed_dim)
         self.embed_dim = embed_dim
         self.patch_size = patch_size
@@ -83,26 +84,32 @@ class ConvMod(nn.Module):
         super().__init__()
         self.norm1 = LayerNorm(dim, eps=1e-6, data_format="channels_first")
         self.norm2 = LayerNorm(dim, eps=1e-6, data_format="channels_first")
-        if inv:
-            padding = (kernel_size-1)//2
-            self.a = nn.Sequential(
-                nn.Conv2d(dim, dim, 1),
-                nn.GELU(),
-                # Inv2d(
-                #     in_channels=dim, out_channels=dim, kernel_size=kernel_size, padding=padding, groups=dim
-                # )
-                involution(dim, kernel_size=kernel_size, stride=1)
-            )
-            # self.v = Inv2d(in_channels=dim, out_channels=dim, kernel_size=1)
-            # self.proj = nn.Conv2d(dim, dim, 1)
-        else:
-            self.a = nn.Sequential(
-                nn.Conv2d(dim, dim, 1),
-                nn.GELU(),
+        # if inv:
+        #     padding = (kernel_size-1)//2
+        #     self.a = nn.Sequential(
+        #         nn.Conv2d(dim, dim, 1),
+        #         nn.GELU(),
+        #         # Inv2d(
+        #         #     in_channels=dim, out_channels=dim, kernel_size=kernel_size, padding=padding, groups=dim
+        #         # )
+        #         involution(dim, kernel_size=kernel_size, stride=1)
+        #     )
+        #     # self.v = Inv2d(in_channels=dim, out_channels=dim, kernel_size=1)
+        #     # self.proj = nn.Conv2d(dim, dim, 1)
+        # else:
+        #     self.a = nn.Sequential(
+        #         nn.Conv2d(dim, dim, 1),
+        #         nn.GELU(),
+        #         nn.Conv2d(dim, dim, kernel_size=kernel_size, padding='same', groups=dim)
+        #     )
+        #     # self.v = nn.Conv2d(dim, dim, 1)
+        #     # self.proj = nn.Conv2d(dim, dim, 1)
+        self.a = nn.Sequential(
+                # nn.Conv2d(dim, dim, 1),
+                # nn.GELU(),
+                involution(dim, kernel_size=kernel_size, stride=1),
                 nn.Conv2d(dim, dim, kernel_size=kernel_size, padding='same', groups=dim)
             )
-            # self.v = nn.Conv2d(dim, dim, 1)
-            # self.proj = nn.Conv2d(dim, dim, 1)
         self.v = nn.Conv2d(dim, dim, 1)
         self.proj = nn.Conv2d(dim, dim, 1)
 
@@ -183,35 +190,40 @@ class FeedForward(nn.Module):
         #     nn.GroupNorm(1, dim),
         #     nn.SiLU(inplace=True),
         # )
-        if inv:
-            # 3 : kernel_size
-            padding = ((3-1) * dilation) // 2
-            # self.ff1_1 = Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, stride=1, padding=1, bias=False, groups=dim)
-            # self.ff1_2 = Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, bias=False, padding=(1, 1, 1), groups=dim, dilation=(1, 1, 1))
-            # self.ff1_act = nn.GELU()
-            self.ff1 = nn.Sequential(
-                Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, stride=1, padding=1, bias=False, groups=dim),
-                #     nn.GroupNorm(1, dim),
-                # padding for Inv3d
-                # Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, bias=False, padding=(1, 1, 1), groups=dim, dilation=(dilation, 1, 1)),
-                Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, bias=False, padding=(1, 1, 1), groups=dim, dilation=(1, 1, 1)),
-                nn.GELU(),
-                # nn.GroupNorm(1, ratio * dim),
-                # nn.SiLU(inplace=True),
+        # if inv:
+        #     # 3 : kernel_size
+        #     padding = ((3-1) * dilation) // 2
+        #     # self.ff1_1 = Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, stride=1, padding=1, bias=False, groups=dim)
+        #     # self.ff1_2 = Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, bias=False, padding=(1, 1, 1), groups=dim, dilation=(1, 1, 1))
+        #     # self.ff1_act = nn.GELU()
+        #     self.ff1 = nn.Sequential(
+        #         Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, stride=1, padding=1, bias=False, groups=dim),
+        #         #     nn.GroupNorm(1, dim),
+        #         # padding for Inv3d
+        #         # Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, bias=False, padding=(1, 1, 1), groups=dim, dilation=(dilation, 1, 1)),
+        #         Inv3d(in_channels=dim, out_channels=dim, kernel_size=3, bias=False, padding=(1, 1, 1), groups=dim, dilation=(1, 1, 1)),
+        #         nn.GELU(),
+        #         # nn.GroupNorm(1, ratio * dim),
+        #         # nn.SiLU(inplace=True),
 
-                # nn.GELU(),
-            )
-        else:
-            self.ff1 = nn.Sequential(
-                nn.Conv3d(dim, dim, 3, 1, 1, bias=False, groups=dim),
-                #     nn.GroupNorm(1, dim),
-                nn.Conv3d(dim, dim, kernel_size=3, bias=False, padding='same', groups=dim, dilation=(dilation, 1, 1)),
-                nn.GELU(),
-                # nn.GroupNorm(1, ratio * dim),
-                # nn.SiLU(inplace=True),
+        #         # nn.GELU(),
+        #     )
+        # else:
+        #     self.ff1 = nn.Sequential(
+        #         nn.Conv3d(dim, dim, 3, 1, 1, bias=False, groups=dim),
+        #         #     nn.GroupNorm(1, dim),
+        #         nn.Conv3d(dim, dim, kernel_size=3, bias=False, padding='same', groups=dim, dilation=(dilation, 1, 1)),
+        #         nn.GELU(),
+        #         # nn.GroupNorm(1, ratio * dim),
+        #         # nn.SiLU(inplace=True),
 
-                # nn.GELU(),
-            )
+        #         # nn.GELU(),
+        #     )
+        self.ff1 = nn.Sequential(
+            nn.Conv3d(dim, dim, 3, 1, 1, bias=False, groups=dim),
+            nn.Conv3d(dim, dim, kernel_size=3, bias=False, padding='same', groups=dim, dilation=(dilation, 1, 1)),
+            nn.GELU(),
+        )
         self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
 
         self.layer_scale_1 = nn.Parameter(init_value * torch.ones((dim)), requires_grad=True)
@@ -292,7 +304,6 @@ class DecoderLayer_S(nn.Module):
         if mode == 'normal':
             self.mlp = nn.Sequential(
                 nn.Conv2d(dim, dim*ratio, 1),
-
                 nn.GELU(),
                 nn.Conv2d(dim*ratio, dim, 1),
             )

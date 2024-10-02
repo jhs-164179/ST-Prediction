@@ -27,8 +27,10 @@ class involution(nn.Module):
             out_channels=channels // reduction_ratio,
             kernel_size=1,
             conv_cfg=None,
-            norm_cfg=dict(type='BN'),
-            act_cfg=dict(type='ReLU'))
+            # norm_cfg=dict(type='BN'),
+            norm_cfg=dict(type='GN', num_groups=self.groups),
+            # act_cfg=dict(type='ReLU'))
+            act_cfg=dict(type='GELU'))
         self.conv2 = ConvModule(
             in_channels=channels // reduction_ratio,
             out_channels=kernel_size**2 * self.groups,
