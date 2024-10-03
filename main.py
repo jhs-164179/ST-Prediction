@@ -8,7 +8,7 @@ import argparse
 from tqdm import tqdm
 from fvcore.nn import FlopCountAnalysis, flop_count_table
 from torch import nn
-from torch.optim import AdamW
+from torch.optim import AdamW, lr_scheduler
 from torch.utils.data import DataLoader
 from timm.scheduler.cosine_lr import CosineLRScheduler
 from dataset import MovingMNIST, TaxibjDataset
@@ -22,9 +22,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=str, default='taxibj')
-    parser.add_argument('--in_shape', type=parse_tuple, default=(4, 2, 32, 32), help='Plz provide as "(B,T,C,H,W)"')
+    parser.add_argument('--in_shape', type=parse_tuple, default=(4, 2, 32, 32), help='Plz provide as "(T,C,H,W)"')
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--lr', type=float, default=1e-3)
+    parser.add_argument('--scheduler', type=str, default='cosine')
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--loss', type=str, default='l1l2')
     parser.add_argument('--warmup_epoch', type=int, default=5)
@@ -50,9 +51,18 @@ if __name__ == '__main__':
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
     optimizer = AdamW(model.parameters(), lr=args.lr)
-    scheduler = CosineLRScheduler(
-        optimizer=optimizer, t_initial=args.epochs, lr_min=1e-06, warmup_lr_init=1e-05, warmup_t=args.warmup_epoch
-    )
+    if args.scheduler == 'cosine':
+        scheduler = CosineLRScheduler(
+            optimizer=optimizer, t_initial=args.epochs, lr_min=1e-06, warmup_lr_init=1e-05, warmup_t=args.warmup_epoch
+        )
+    elif args.scheduler == 'onecycle':
+        scheduler = lr_scheduler.OneCycleLR(
+            optimizer=optimizer, max_lr=args.lr, epochs=args.epochs, steps_per_epoch=10
+        )
+    else:
+        scheduler = lr_scheduler.ReduceLROnPlateau(
+            optimizer=optimizer, mode='min', factor=.5, verbose=True
+        )
     criterion1 = nn.MSELoss()
     criterion2 = nn.L1Loss()
 
@@ -112,7 +122,10 @@ if __name__ == '__main__':
                     loss = criterion1(preds, y)
                     loss_test += loss.item()
                 loss_test = loss_test / len(test_loader)
-                scheduler.step(epoch=epoch, metric=loss_test)
+                if args.scheduler == 'onecycle':
+                    scheduler.step(epoch=epoch)
+                else:
+                    scheduler.step(epoch=epoch, metric=loss_test)
                 print_f(f'Epoch {epoch + 1} | Test Loss : {loss_test:.6f} | Time : {time.time() - t1:.4f}', file=log_file)
 
                 # save best model
